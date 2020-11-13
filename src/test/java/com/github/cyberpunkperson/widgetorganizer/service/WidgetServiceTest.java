@@ -12,6 +12,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -190,6 +191,30 @@ public class WidgetServiceTest {
                 .thenReturn(existWidgets);
 
         assertThrows(IllegalArgumentException.class, () -> widgetService.update(newWidget));
+    }
+
+    @Test
+    public void filterWidgetSuitsConditions() {
+
+        List<Widget> existWidgets = new ArrayList<>() {{
+            add(new Widget(null, 50, 50, 1, 100, 100));
+            add(new Widget(null, 50, 100, 2, 100, 100));
+            add(new Widget(null, 100, 100, 4, 100, 100));
+        }};
+
+        when(widgetRepository.findAll())
+                .thenReturn(existWidgets);
+
+        List<Widget> expectedWidgets = new ArrayList<>() {{
+            add(new Widget(null, 50, 50, 1, 100, 100));
+            add(new Widget(null, 50, 100, 2, 100, 100));
+        }};
+
+        List<Widget> resultWidgets = widgetService.findAllByArea(100, 150);
+        assertEquals(2, resultWidgets.size());
+        assertEquals(expectedWidgets, resultWidgets);
+
+
     }
 
 }
