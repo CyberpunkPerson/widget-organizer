@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.springframework.util.Assert.notNull;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -74,6 +76,16 @@ public class WidgetService {
         return widgetPageableRepository.findByOrderByIndexZ(pageable);
     }
 
+    public List<Widget> findAllByArea(Integer width, Integer height) {
+
+        Predicate<Widget> entirelyFallFilter = widget -> (widget.getCoordinateY() + widget.getHeight() / 2) <= height
+                && (widget.getCoordinateX() + widget.getWidth() / 2) <= width;
+    //not the best solution in terms of complexity
+        return findAll().stream()
+                .filter(entirelyFallFilter)
+                .collect(toList());
+    }
+
     private List<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget) {
 
         if (isEmpty(widgets)) {
@@ -105,6 +117,9 @@ public class WidgetService {
         return new ArrayList<>(insertWidgetWithShift(widgetsMap, newWidget).values());
     }
 
+    /*
+     * Also can be done via iterator, I decided to try this approach
+     */
     private static HashMap<Integer, Widget> insertWidgetWithShift(HashMap<Integer, Widget> widgetsMap, Widget newWidget) {
 
         Optional.ofNullable(widgetsMap.get(newWidget.getIndexZ()))

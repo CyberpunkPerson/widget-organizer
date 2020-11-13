@@ -60,4 +60,12 @@ public class WidgetController {
                 .ok(widgetService.findAllSortedPageable(PageRequest.of(page, size)));
     }
 
+    @GetMapping("/find-all/by/area")
+    public ResponseEntity<List<Widget>> findAllWidgetsByArea(@RequestParam("width") Integer width,
+                                                               @RequestParam("height") Integer height) {
+
+        return ResponseEntity
+                .ok(widgetService.findAllByArea(width, height));
+    }
+
 }
