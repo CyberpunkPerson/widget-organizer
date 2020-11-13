@@ -48,7 +48,7 @@ public class WidgetController {
     public ResponseEntity<List<Widget>> findAllWidget() {
 
         return ResponseEntity
-                .ok(widgetService.findAll());
+                .ok(widgetService.findAllSorted());
     }
 
 }

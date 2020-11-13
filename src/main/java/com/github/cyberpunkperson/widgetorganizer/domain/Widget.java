@@ -1,6 +1,6 @@
 package com.github.cyberpunkperson.widgetorganizer.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -15,6 +15,7 @@ import java.util.UUID;
 @Entity
 @SuperBuilder
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "widget")
 public class Widget extends Auditor {
 
@@ -30,7 +31,6 @@ public class Widget extends Auditor {
     private Integer coordinateY;
 
     @Column(unique = true)
-    @NotNull(message = "{widget.index-z.not-null}")
     private Integer indexZ;
 
     @NotNull(message = "{widget.width.not-null}")
@@ -40,9 +40,5 @@ public class Widget extends Auditor {
     @NotNull(message = "{widget.height.not-null}")
     @Positive(message = "{widget.height.positive}")
     private Integer height;
-
-    @Version
-    @JsonIgnore
-    private Long version;
 
 }
