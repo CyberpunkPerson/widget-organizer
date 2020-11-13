@@ -1,0 +1,17 @@
+logging:
+  level:
+    org.springframework: info
+    com.github.cyberpunkperson.widgetorganizer: info
+
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 10
+  datasource:
+    url: jdbc:h2:mem:widget_organizer_prod
+    driverClassName: org.h2.Driver
+    username: ${widget-organizer.datasource.username}
+    password: ${widget-organizer.datasource.password}
