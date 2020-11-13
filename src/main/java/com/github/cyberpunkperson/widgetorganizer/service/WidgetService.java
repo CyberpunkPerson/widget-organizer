@@ -1,8 +1,10 @@
 package com.github.cyberpunkperson.widgetorganizer.service;
 
 import com.github.cyberpunkperson.widgetorganizer.domain.Widget;
+import com.github.cyberpunkperson.widgetorganizer.repository.WidgetPageableRepository;
 import com.github.cyberpunkperson.widgetorganizer.repository.WidgetRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 public class WidgetService {
 
     private final WidgetRepository widgetRepository;
+
+    private final WidgetPageableRepository widgetPageableRepository;
 
 
     @Transactional
@@ -64,6 +68,10 @@ public class WidgetService {
 
     public List<Widget> findAllSorted() {
         return widgetRepository.findByOrderByIndexZ();
+    }
+
+    public List<Widget> findAllSortedPageable(Pageable pageable) {
+        return widgetPageableRepository.findByOrderByIndexZ(pageable);
     }
 
     private List<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget) {
