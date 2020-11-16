@@ -12,6 +12,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -194,7 +195,35 @@ public class WidgetServiceTest {
     }
 
     @Test
-    public void filterWidgetSuitsConditions() {
+    public void filterWidgetsByArea() {
+
+        List<Widget> existWidgets = new ArrayList<>() {{
+            add(new Widget(null, 50, 50, 4, 98, 100));
+            add(new Widget(null, 50, 50, 1, 100, 100));
+            add(new Widget(null, 50, 100, 4, 100, 98));
+            add(new Widget(null, 50, 100, 2, 100, 100));
+            add(new Widget(null, 50, 100, 4, 100, 101));
+            add(new Widget(null, 50, 50, 4, 101, 100));
+            add(new Widget(null, 75, 75, 4, 100, 100));
+        }};
+
+        when(widgetRepository.findAllSortedByHeightAndWidth())
+                .thenReturn(existWidgets);
+
+        List<Widget> expectedWidgets = new ArrayList<>() {{
+            add(new Widget(null, 50, 50, 4, 98, 100));
+            add(new Widget(null, 50, 50, 1, 100, 100));
+            add(new Widget(null, 50, 100, 4, 100, 98));
+            add(new Widget(null, 50, 100, 2, 100, 100));
+        }};
+
+        List<Widget> filterWidgets = widgetService.findAllByArea(100, 150);
+
+        assertEquals(expectedWidgets, filterWidgets);
+    }
+
+    @Test
+    public void filterWidgetsByAreaOutOfArea() {
 
         List<Widget> existWidgets = new ArrayList<>() {{
             add(new Widget(null, 50, 50, 1, 100, 100));
@@ -202,19 +231,14 @@ public class WidgetServiceTest {
             add(new Widget(null, 100, 100, 4, 100, 100));
         }};
 
-        when(widgetRepository.findAll())
+        when(widgetRepository.findAllSortedByHeightAndWidth())
                 .thenReturn(existWidgets);
 
-        List<Widget> expectedWidgets = new ArrayList<>() {{
-            add(new Widget(null, 50, 50, 1, 100, 100));
-            add(new Widget(null, 50, 100, 2, 100, 100));
-        }};
+        List<Widget> expectedWidgets = emptyList();
 
-        List<Widget> resultWidgets = widgetService.findAllByArea(100, 150);
-        assertEquals(2, resultWidgets.size());
-        assertEquals(expectedWidgets, resultWidgets);
+        List<Widget> filterWidgets = widgetService.findAllByArea(10, 15);
 
-
+        assertEquals(expectedWidgets, filterWidgets);
     }
 
 }

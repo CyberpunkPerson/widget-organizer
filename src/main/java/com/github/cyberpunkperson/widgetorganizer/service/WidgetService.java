@@ -9,10 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.function.Predicate;
 
+import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.springframework.util.Assert.notNull;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -78,12 +77,45 @@ public class WidgetService {
 
     public List<Widget> findAllByArea(Integer width, Integer height) {
 
-        Predicate<Widget> entirelyFallFilter = widget -> (widget.getCoordinateY() + widget.getHeight() / 2) <= height
-                && (widget.getCoordinateX() + widget.getWidth() / 2) <= width;
-    //not the best solution in terms of complexity
-        return findAll().stream()
-                .filter(entirelyFallFilter)
-                .collect(toList());
+        List<Widget> existWidgets = widgetRepository.findAllSortedByHeightAndWidth();
+        return binarySearchOfEdgeIndex(existWidgets, 0, existWidgets.size() - 1, width, height)
+                .map(edgeWidgetIndex -> existWidgets.subList(0, edgeWidgetIndex + 1))
+                .orElse(emptyList());
+    }
+
+    private Optional<Integer> binarySearchOfEdgeIndex(List<Widget> widgets, int start, int end, int width, int height) {
+
+        if (end >= start) {
+            int middle = start + (end - start) / 2;
+
+            if (isEdgeCoordinate(widgets, middle, width, height))
+                return Optional.of(middle);
+
+            if (isCoordinateMoreThanValue(widgets, middle, width, height))
+                return binarySearchOfEdgeIndex(widgets, start, middle - 1, width, height);
+
+            return binarySearchOfEdgeIndex(widgets, middle + 1, end, width, height);
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isEdgeCoordinate(List<Widget> widgets, int middle, int width, int height) {
+
+        Widget checkWidget = widgets.get(middle);
+        boolean result = checkWidget.getMaxWidthCoordinate() <= width && checkWidget.getMaxHeightCoordinate() <= height;
+
+        if (middle < widgets.size() - 1) {
+            Widget nextWidget = widgets.get(middle + 1);
+            return result && (nextWidget.getMaxWidthCoordinate() > width || nextWidget.getMaxHeightCoordinate() > height);
+        }
+
+        return result;
+    }
+
+    private boolean isCoordinateMoreThanValue(List<Widget> widgets, Integer middle, int width, int height) {
+        Widget widget = widgets.get(middle);
+        return widget.getMaxWidthCoordinate() > width && widget.getMaxHeightCoordinate() > height;
     }
 
     private List<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget) {
