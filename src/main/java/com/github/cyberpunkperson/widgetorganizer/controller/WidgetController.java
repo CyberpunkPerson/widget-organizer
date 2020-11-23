@@ -1,8 +1,11 @@
 package com.github.cyberpunkperson.widgetorganizer.controller;
 
+import com.github.cyberpunkperson.widgetorganizer.annotation.Projection;
+import com.github.cyberpunkperson.widgetorganizer.controller.dto.WidgetProjection;
 import com.github.cyberpunkperson.widgetorganizer.domain.Widget;
 import com.github.cyberpunkperson.widgetorganizer.service.WidgetService;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,61 +14,68 @@ import javax.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toList;
+
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/widget")
+@RequestMapping("/widgets")
 public class WidgetController {
 
     private final WidgetService widgetService;
 
+    private final ModelMapper modelMapper;
 
-    @PostMapping("/create")
-    public ResponseEntity<Widget> createWidget(@RequestBody @Valid Widget widget) {
 
+    /*
+        @Projection could looks weird, just using my chance to experiment,
+        could be replaced on @RequestBody and manual mapping
+     */
+    @PostMapping
+    public ResponseEntity<WidgetProjection> createWidget(@Projection(WidgetProjection.class) @Valid Widget widget) {
+
+        Widget createdWidget = widgetService.create(widget);
         return ResponseEntity
-                .ok(widgetService.create(widget));
+                .ok(modelMapper.map(createdWidget, WidgetProjection.class));
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<Widget> updateWidget(@RequestBody @Valid Widget widget) {
+    @PutMapping
+    public ResponseEntity<WidgetProjection> updateWidget(@Projection(WidgetProjection.class) @Valid Widget widget) {
 
+        Widget updatedWidget = widgetService.update(widget);
         return ResponseEntity
-                .ok(widgetService.update(widget));
+                .ok(modelMapper.map(updatedWidget, WidgetProjection.class));
     }
 
-    @DeleteMapping("/delete/{widgetId}")
+    @DeleteMapping("/{widgetId}")
     public void deleteWidget(@PathVariable UUID widgetId) {
         widgetService.deleteById(widgetId);
     }
 
-    @GetMapping("/find/{widgetId}")
-    public ResponseEntity<Widget> findWidget(@PathVariable UUID widgetId) {
+    @GetMapping("/{widgetId}")
+    public ResponseEntity<WidgetProjection> findWidget(@PathVariable UUID widgetId) {
 
+        Widget foundWidget = widgetService.findById(widgetId);
         return ResponseEntity
-                .ok(widgetService.findById(widgetId));
+                .ok(modelMapper.map(foundWidget, WidgetProjection.class));
     }
 
-    @GetMapping("/find-all")
-    public ResponseEntity<List<Widget>> findAllWidgets() {
+    @GetMapping
+    public ResponseEntity<List<WidgetProjection>> findAllWidgets(@RequestParam Integer page,
+                                                                 @RequestParam(defaultValue = "10") Integer size,
+                                                                 @RequestParam(required = false) Integer width,
+                                                                 @RequestParam(required = false) Integer height) {
+
+        List<Widget> foundWidgets;
+        if (nonNull(width) && nonNull(height)) {
+            foundWidgets = widgetService.findAllByArea(PageRequest.of(page, size), width, height);
+        } else {
+            foundWidgets = widgetService.findAllSortedByIndexZ(PageRequest.of(page, size));
+        }
 
         return ResponseEntity
-                .ok(widgetService.findAllSorted());
+                .ok(foundWidgets.stream()
+                        .map(widget -> modelMapper.map(widget, WidgetProjection.class))
+                        .collect(toList()));
     }
-
-    @GetMapping("/find-all/pageable")
-    public ResponseEntity<List<Widget>> findAllWidgetsPageable(@RequestParam("page") Integer page,
-                                                               @RequestParam("size") Integer size) {
-
-        return ResponseEntity
-                .ok(widgetService.findAllSortedPageable(PageRequest.of(page, size)));
-    }
-
-    @GetMapping("/find-all/by/area")
-    public ResponseEntity<List<Widget>> findAllWidgetsByArea(@RequestParam("width") Integer width,
-                                                               @RequestParam("height") Integer height) {
-
-        return ResponseEntity
-                .ok(widgetService.findAllByArea(width, height));
-    }
-
 }

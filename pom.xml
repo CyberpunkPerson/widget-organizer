@@ -20,6 +20,9 @@
 
     <properties>
         <java.version>11</java.version>
+
+        <!--Web-->
+        <modelmapper.version>2.3.8</modelmapper.version>
     </properties>
 
     <dependencies>
@@ -27,6 +30,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>${modelmapper.version}</version>
         </dependency>
 
         <!--Persistence-->

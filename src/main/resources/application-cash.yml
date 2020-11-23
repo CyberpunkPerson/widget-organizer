@@ -1,0 +1,4 @@
+logging:
+  level:
+    org.springframework: debug
+    com.github.cyberpunkperson.widgetorganizer: debug

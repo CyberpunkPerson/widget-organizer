@@ -41,11 +41,7 @@ public class Widget extends Auditor {
     @Positive(message = "{widget.height.positive}")
     private Integer height;
 
-    public Float getMaxWidthCoordinate() {
-        return (coordinateX + (float) width / 2);
-    }
+    private Float maxCoordinateX;
 
-    public Float getMaxHeightCoordinate() {
-        return coordinateY + (float) height / 2;
-    }
+    private Float maxCoordinateY;
 }
