@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.springframework.transaction.annotation.Isolation.READ_COMMITTED;
 
 
@@ -56,12 +55,13 @@ public class WidgetCashRepository implements WidgetRepository {
     public Page<Widget> findAllSortedByIndexZ(Pageable pageable) {
 
         int startIndex = pageable.getPageNumber() * pageable.getPageSize();
-        int endIndex = startIndex + pageable.getPageSize();
 
         List<Widget> sortedWidgets = widgetCash.values().stream()
                 .sorted(Comparator.comparingInt(Widget::getIndexZ))
                 .collect(toList());
 
+        int pageLastIndex = (startIndex + pageable.getPageSize());
+        int endIndex = Math.min(pageLastIndex, sortedWidgets.size());
         return new PageImpl<>(sortedWidgets.subList(startIndex, endIndex));
     }
 
@@ -78,19 +78,18 @@ public class WidgetCashRepository implements WidgetRepository {
     @Override
     @Transactional
     public List<Widget> saveWidgets(List<Widget> widgets) {
-        Map<UUID, Widget> widgetsToSave = widgets.stream()
-                .peek(widget -> {
-                    if (isNull(widget.getId())) {
-                        widget.setId(UUID.randomUUID());
-                        widget.setCreatedDate(ZonedDateTime.now());
+        widgets.forEach(widget -> {
+            if (isNull(widget.getId())) {
+                widget.setId(UUID.randomUUID());
+                widget.setCreatedDate(ZonedDateTime.now());
+                widget.setLastModifiedDate(ZonedDateTime.now());
+                this.widgetCash.put(widget.getId(), widget);
 
-                    } else if (!widget.equals(this.widgetCash.get(widget.getId()))) {
-                        widget.setLastModifiedDate(ZonedDateTime.now());
-                    }
-                })
-                .collect(toMap(Widget::getId, widget -> widget));
-
-        this.widgetCash.putAll(widgetsToSave);
+            } else if (this.widgetCash.containsKey(widget.getId())) {
+                widget.setLastModifiedDate(ZonedDateTime.now());
+                this.widgetCash.replace(widget.getId(), widget);
+            }
+        });
         return widgets;
     }
 

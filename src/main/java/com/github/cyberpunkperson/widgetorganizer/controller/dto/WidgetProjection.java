@@ -1,5 +1,7 @@
 package com.github.cyberpunkperson.widgetorganizer.controller.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -12,7 +14,9 @@ import java.util.UUID;
 import static org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME;
 
 @Data
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class WidgetProjection {
 
     UUID id;
