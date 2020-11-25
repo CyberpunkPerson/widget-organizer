@@ -46,7 +46,7 @@ public class WidgetServiceImpl implements WidgetService {
         existWidgets.stream()
                 .filter(widget -> widget.getId().equals(newWidget.getId()))
                 .findAny()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Widget with id:'%s' does not exist", newWidget.getId())));
+                .orElseThrow(() -> new NoSuchElementException(String.format("Widget with id:'%s' does not exist", newWidget.getId())));
 
         calculateMaxCoordinates(newWidget);
         List<Widget> mergedWidgets = mergeWidgets(existWidgets, newWidget);
@@ -65,7 +65,8 @@ public class WidgetServiceImpl implements WidgetService {
 
     @Override
     public void deleteById(UUID widgetId) {
-        widgetRepository.deleteById(widgetId);
+        Widget deleteWidget = findById(widgetId);
+        widgetRepository.deleteById(deleteWidget.getId());
     }
 
     @Override
@@ -95,8 +96,11 @@ public class WidgetServiceImpl implements WidgetService {
     public List<Widget> findAllByArea(Pageable pageable, Integer width, Integer height) {
 
         List<Widget> existWidgets = widgetRepository.findAllSortedByWidthAndHeight();
+
         return binarySearchOfEdgeIndex(existWidgets, 0, existWidgets.size() - 1, width, height)
-                .map(edgeWidgetIndex -> existWidgets.subList(0, edgeWidgetIndex + 1))
+                .map(edgeWidgetIndex -> existWidgets.subList(0, edgeWidgetIndex + 1).stream()
+                        .sorted(Comparator.comparingInt(Widget::getIndexZ))
+                        .collect(toList()))
                 .orElse(emptyList());
     }
 
@@ -181,9 +185,13 @@ public class WidgetServiceImpl implements WidgetService {
                             widgetsMap.put(newWidget.getIndexZ(), newWidget);
                             updatedWidgets.add(newWidget.getId());
 
-                            widget.setIndexZ(widget.getIndexZ() + 1);
-                            updatedWidgets.add(widget.getId());
-                            insertWidgetWithShift(widgetsMap, updatedWidgets, widget);
+                            if (isNull(widget.getId())) {
+                                throw new IllegalStateException("Can't merge widgets with null id");
+                            } else if (!widget.getId().equals(newWidget.getId())) {
+                                widget.setIndexZ(widget.getIndexZ() + 1);
+                                updatedWidgets.add(widget.getId());
+                                insertWidgetWithShift(widgetsMap, updatedWidgets, widget);
+                            }
                         },
                         () -> {
                             updatedWidgets.add(newWidget.getId());

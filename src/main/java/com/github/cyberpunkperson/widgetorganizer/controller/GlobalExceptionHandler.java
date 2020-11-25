@@ -14,8 +14,9 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.util.WebUtils;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import java.util.NoSuchElementException;
+
+import static org.springframework.http.HttpStatus.*;
 
 @ControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -27,6 +28,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 new ApiException(exception.getMessage()),
                 new HttpHeaders(),
                 INTERNAL_SERVER_ERROR,
+                request
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiException> handleIllegalArgumentException(Exception exception, WebRequest request) {
+        return handleExceptionInternal(
+                exception,
+                new ApiException(exception.getMessage()),
+                new HttpHeaders(),
+                BAD_REQUEST,
+                request
+        );
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ApiException> handleNoSuchElementException(Exception exception, WebRequest request) {
+        return handleExceptionInternal(
+                exception,
+                new ApiException(exception.getMessage()),
+                new HttpHeaders(),
+                NOT_FOUND,
                 request
         );
     }
