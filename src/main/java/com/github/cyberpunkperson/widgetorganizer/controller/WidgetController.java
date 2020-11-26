@@ -7,11 +7,11 @@ import com.github.cyberpunkperson.widgetorganizer.service.WidgetService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static java.util.Objects.nonNull;
@@ -32,19 +32,20 @@ public class WidgetController {
         could be replaced on @RequestBody and manual mapping
      */
     @PostMapping
-    public ResponseEntity<WidgetProjection> createWidget(@Projection(WidgetProjection.class) @Valid Widget widget) {
+    public WidgetProjection createWidget(@Projection(WidgetProjection.class) @Valid Widget widget) {
 
         Widget createdWidget = widgetService.create(widget);
-        return ResponseEntity
-                .ok(modelMapper.map(createdWidget, WidgetProjection.class));
+        return modelMapper.map(createdWidget, WidgetProjection.class);
     }
 
     @PutMapping
-    public ResponseEntity<WidgetProjection> updateWidget(@Projection(WidgetProjection.class) @Valid Widget widget) {
+    public WidgetProjection updateWidget(@RequestBody @Valid WidgetProjection widgetProjection) {
 
-        Widget updatedWidget = widgetService.update(widget);
-        return ResponseEntity
-                .ok(modelMapper.map(updatedWidget, WidgetProjection.class));
+        return Optional.of(widgetProjection)
+                .map(this::convertProjectionToWidget)
+                .map(widgetService::update)
+                .map(this::convertWidgetToProjection)
+                .orElseThrow(() -> new RuntimeException("Failed to update widget"));
     }
 
     @DeleteMapping("/{widgetId}")
@@ -53,18 +54,17 @@ public class WidgetController {
     }
 
     @GetMapping("/{widgetId}")
-    public ResponseEntity<WidgetProjection> findWidget(@PathVariable UUID widgetId) {
+    public WidgetProjection findWidget(@PathVariable UUID widgetId) {
 
         Widget foundWidget = widgetService.findById(widgetId);
-        return ResponseEntity
-                .ok(modelMapper.map(foundWidget, WidgetProjection.class));
+        return modelMapper.map(foundWidget, WidgetProjection.class);
     }
 
     @GetMapping
-    public ResponseEntity<List<WidgetProjection>> findAllWidgets(@RequestParam Integer page,
-                                                                 @RequestParam(defaultValue = "10") Integer size,
-                                                                 @RequestParam(required = false) Integer width,
-                                                                 @RequestParam(required = false) Integer height) {
+    public List<WidgetProjection> findAllWidgets(@RequestParam Integer page,
+                                                 @RequestParam(defaultValue = "10") Integer size,
+                                                 @RequestParam(required = false) Integer width,
+                                                 @RequestParam(required = false) Integer height) {
 
         List<Widget> foundWidgets;
         if (nonNull(width) && nonNull(height)) {
@@ -73,9 +73,16 @@ public class WidgetController {
             foundWidgets = widgetService.findAllSortedByIndexZ(PageRequest.of(page, size));
         }
 
-        return ResponseEntity
-                .ok(foundWidgets.stream()
-                        .map(widget -> modelMapper.map(widget, WidgetProjection.class))
-                        .collect(toList()));
+        return foundWidgets.stream()
+                .map(this::convertWidgetToProjection)
+                .collect(toList());
+    }
+
+    private Widget convertProjectionToWidget(WidgetProjection widgetProjection) {
+        return modelMapper.map(widgetProjection, Widget.class);
+    }
+
+    private WidgetProjection convertWidgetToProjection(Widget widget) {
+        return modelMapper.map(widget, WidgetProjection.class);
     }
 }

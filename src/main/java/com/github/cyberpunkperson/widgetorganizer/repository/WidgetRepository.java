@@ -4,6 +4,7 @@ import com.github.cyberpunkperson.widgetorganizer.domain.Widget;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,7 +21,7 @@ public interface WidgetRepository {
 
     List<Widget> findAllSortedByWidthAndHeight();
 
-    List<Widget> saveWidgets(List<Widget> widgets);
+    List<Widget> saveWidgets(@Valid List<Widget> widgets);
 
     void deleteById(UUID widgetId);
 }

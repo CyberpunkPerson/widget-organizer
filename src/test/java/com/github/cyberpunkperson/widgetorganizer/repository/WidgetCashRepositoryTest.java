@@ -15,6 +15,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(SpringExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -25,9 +26,37 @@ public class WidgetCashRepositoryTest {
 
 
     @Test
+    public void rollbackWidgetsUpdateIfExceptionIsThrown() {
+
+        Widget widget1 = new Widget(null, 5, 6, 1, 3, 4, null, null, null, null);
+
+        widgetCashRepository.saveWidgets(Collections.singletonList(widget1));
+
+        Widget widget2 = new Widget(widget1.getId(), 5, 6, 100, 3, 4, null, null, null, null);
+        Widget widget3 = new Widget(UUID.randomUUID(), 5, 6, 1, 3, 4, null, null, null, null);
+
+        assertThrows(RuntimeException.class, () -> widgetCashRepository.saveWidgets(List.of(widget2, widget3)));
+
+        Widget expectedWidget = new Widget(widget1.getId(), 5, 6, 1, 3, 4, null, null, null, null);
+
+        Widget foundWidget = widgetCashRepository.findById(widget1.getId())
+                .orElseThrow(NoSuchElementException::new);
+
+        assertThat(foundWidget)
+                .returns(expectedWidget.getId(), from(Widget::getId))
+                .returns(expectedWidget.getCoordinateX(), from(Widget::getCoordinateX))
+                .returns(expectedWidget.getCoordinateY(), from(Widget::getCoordinateY))
+                .returns(expectedWidget.getWidth(), from(Widget::getWidth))
+                .returns(expectedWidget.getHeight(), from(Widget::getHeight))
+                .returns(expectedWidget.getIndexZ(), from(Widget::getIndexZ));
+
+        assertEquals(1, widgetCashRepository.findAll().size());
+    }
+
+    @Test
     public void getWidgetById() {
 
-        Widget widget = new Widget(null, 5, 6, 1, 3, 4, null, null);
+        Widget widget = new Widget(null, 5, 6, 1, 3, 4, null, null, null, null);
 
         widgetCashRepository.saveWidgets(Collections.singletonList(widget));
 
@@ -40,7 +69,7 @@ public class WidgetCashRepositoryTest {
     @Test
     public void deleteWidgetById() {
 
-        Widget widget = new Widget(null, 5, 6, 1, 3, 4, null, null);
+        Widget widget = new Widget(null, 5, 6, 1, 3, 4, null, null, null, null);
 
         widgetCashRepository.saveWidgets(Collections.singletonList(widget));
 
@@ -58,10 +87,10 @@ public class WidgetCashRepositoryTest {
     public void saveWidgetsWithIdGeneration() {
 
         List<Widget> widgetsToSave = new ArrayList<>() {{
-            add(new Widget(null, 5, 6, 1, 3, 4, null, null));
-            add(new Widget(null, 5, 6, 2, 3, 4, null, null));
-            add(new Widget(null, 5, 6, 4, 3, 4, null, null));
-            add(new Widget(null, 3, 4, 5, 4, 4, null, null));
+            add(new Widget(null, 5, 6, 1, 3, 4, null, null, null, null));
+            add(new Widget(null, 5, 6, 2, 3, 4, null, null, null, null));
+            add(new Widget(null, 5, 6, 4, 3, 4, null, null, null, null));
+            add(new Widget(null, 3, 4, 5, 4, 4, null, null, null, null));
         }};
 
         widgetCashRepository.saveWidgets(widgetsToSave);
@@ -78,22 +107,19 @@ public class WidgetCashRepositoryTest {
     @Test
     public void updateWidget() {
 
-        Widget widgetToSave = new Widget(null, 5, 6, 1, 3, 4, null, null);
+        Widget widget = new Widget(null, 5, 6, 1, 3, 4, null, null, null, null);
 
-        widgetCashRepository.saveWidgets(Collections.singletonList(widgetToSave));
+        widgetCashRepository.saveWidgets(Collections.singletonList(widget));
 
-        Widget expectedWidget = Widget.builder()
-                .id(widgetToSave.getId())
-                .coordinateX(5)
-                .coordinateY(6)
-                .indexZ(4)
-                .width(300)
-                .height(200)
-                .build();
+        widget.setIndexZ(4);
+        widget.setWidth(300);
+        widget.setHeight(200);
+        widgetCashRepository.saveWidgets(Collections.singletonList(widget));
 
-        widgetCashRepository.saveWidgets(Collections.singletonList(expectedWidget));
+        Widget expectedWidget = new Widget(widget.getId(), 5, 6, 4, 300, 200, null, null, null, null);
 
-        Widget updatedWidget = widgetCashRepository.findById(widgetToSave.getId())
+
+        Widget updatedWidget = widgetCashRepository.findById(widget.getId())
                 .orElseThrow(NoSuchElementException::new);
 
         assertThat(updatedWidget)
@@ -109,13 +135,11 @@ public class WidgetCashRepositoryTest {
     public void findAllSortedByWidthAndHeight() {
 
         List<Widget> savedWidgets = new ArrayList<>() {{
-            add(new Widget(null, 100, 100, 4, 100, 100, 150f, 150f));
-            add(new Widget(null, 50, 100, 2, 100, 100, 100f, 150f));
-            add(new Widget(null, 100, 150, 5, 100, 100, 150f, 200f));
-            add(new Widget(null, 50, 50, 1, 100, 100, 100f, 100f));
+            add(new Widget(null, 100, 100, 4, 100, 100, 150f, 50f, 150f, 50f));
+            add(new Widget(null, 50, 100, 2, 100, 100, 100f, 0f, 150f, 50f));
+            add(new Widget(null, 100, 150, 5, 100, 100, 150f, 50f, 200f, 100f));
+            add(new Widget(null, 50, 50, 1, 100, 100, 100f, 0f, 100f, 0f));
         }};
-
-        savedWidgets.forEach(widget -> widgetCashRepository.saveWidgets(Collections.singletonList(widget)));
 
         widgetCashRepository.saveWidgets(savedWidgets);
 
@@ -125,6 +149,4 @@ public class WidgetCashRepositoryTest {
 
         assertEquals(sortedWidgets, widgetCashRepository.findAllSortedByWidthAndHeight());
     }
-
-
 }

@@ -41,15 +41,15 @@ public interface WidgetJDBCRepository extends JpaRepository<Widget, UUID>, Widge
     @Query("select w from Widget w order by  w.maxCoordinateX asc, w.maxCoordinateY asc")
     List<Widget> findAllSortedByWidthAndHeight();
 
+    @Override
     @Transactional
     default List<Widget> saveWidgets(List<Widget> widgets) {
         List<Widget> existWidgets = widgets.stream()
                 .filter(widget -> nonNull(widget.getId()))
                 .collect(toList());
 
-        if (existWidgets.size() == widgets.size()) {
-            return saveAll(widgets);
-        }
+        if (existWidgets.size() == widgets.size())
+            return saveAll(existWidgets);
 
         saveAll(existWidgets);
         flush();

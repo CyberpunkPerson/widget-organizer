@@ -10,11 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.springframework.util.Assert.notNull;
-import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
 @RequiredArgsConstructor
@@ -22,45 +19,50 @@ public class WidgetServiceImpl implements WidgetService {
 
     private final WidgetRepository widgetRepository;
 
+    private final WidgetMerger widgetMerger;
+
 
     @Override
     @Transactional
-    public Widget create(Widget newWidget) {
+    public Widget create(Widget widget) {
 
         List<Widget> existWidgets = findAll();
-        List<Widget> mergedWidgets = mergeWidgets(existWidgets, newWidget);
-
-        calculateMaxCoordinates(newWidget);
+        List<Widget> mergedWidgets = widgetMerger.mergeEngagedOnly(existWidgets, widget);
+        calculateMaxMinCoordinates(widget);
 
         widgetRepository.saveWidgets(mergedWidgets);
-        return newWidget;
+        return widget;
     }
 
     @Override
     @Transactional
-    public Widget update(Widget newWidget) {
+    public Widget update(Widget widget) {
 
-        notNull(newWidget.getId(), "Widget id should to be specified for update");
+        notNull(widget.getId(), "Widget id should to be specified for update");
 
         List<Widget> existWidgets = findAll();
         existWidgets.stream()
-                .filter(widget -> widget.getId().equals(newWidget.getId()))
+                .filter(existWidget -> existWidget.getId().equals(widget.getId()))
                 .findAny()
-                .orElseThrow(() -> new NoSuchElementException(String.format("Widget with id:'%s' does not exist", newWidget.getId())));
+                .orElseThrow(() -> new NoSuchElementException(String.format("Widget with id:'%s' does not exist", widget.getId())));
 
-        calculateMaxCoordinates(newWidget);
-        List<Widget> mergedWidgets = mergeWidgets(existWidgets, newWidget);
+        List<Widget> mergedWidgets = widgetMerger.mergeEngagedOnly(existWidgets, widget);
+        calculateMaxMinCoordinates(widget);
 
         widgetRepository.saveWidgets(mergedWidgets);
-        return newWidget;
+        return widget;
     }
 
-    private void calculateMaxCoordinates(Widget widget) {
+    private void calculateMaxMinCoordinates(Widget widget) {
         Float maxCoordinateX = (widget.getCoordinateX() + (float) widget.getWidth() / 2);
+        Float minCoordinateX = (widget.getCoordinateX() - (float) widget.getWidth() / 2);
         Float maxCoordinateY = (widget.getCoordinateY() + (float) widget.getHeight() / 2);
+        Float minCoordinateY = (widget.getCoordinateY() - (float) widget.getHeight() / 2);
 
         widget.setMaxCoordinateX(maxCoordinateX);
+        widget.setMinCoordinateX(minCoordinateX);
         widget.setMaxCoordinateY(maxCoordinateY);
+        widget.setMinCoordinateY(minCoordinateY);
     }
 
     @Override
@@ -82,14 +84,14 @@ public class WidgetServiceImpl implements WidgetService {
 
     @Override
     public List<Widget> findAll(Pageable pageable) {
-        return widgetRepository.findAll(pageable)
-                .getContent();
+        return widgetRepository.findAll(pageable).stream()
+                .collect(toList());
     }
 
     @Override
     public List<Widget> findAllSortedByIndexZ(Pageable pageable) {
-        return widgetRepository.findAllSortedByIndexZ(pageable)
-                .getContent();
+        return widgetRepository.findAllSortedByIndexZ(pageable).stream()
+                .collect(toList());
     }
 
     @Override
@@ -138,67 +140,4 @@ public class WidgetServiceImpl implements WidgetService {
         Widget widget = widgets.get(middle);
         return widget.getMaxCoordinateX() > width && widget.getMaxCoordinateY() > height;
     }
-
-    private List<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget) {
-
-        if (isEmpty(widgets)) {
-            if (isNull(newWidget.getIndexZ())) {
-                newWidget.setIndexZ(0);
-            }
-
-            return new ArrayList<>() {{
-                addAll(widgets);
-                add(newWidget);
-            }};
-        }
-
-        if (isNull(newWidget.getIndexZ())) {
-            widgets.stream()
-                    .mapToInt(Widget::getIndexZ)
-                    .max()
-                    .ifPresent(maxZIndex -> newWidget.setIndexZ(maxZIndex + 1));
-
-            return new ArrayList<>() {{
-                addAll(widgets);
-                add(newWidget);
-            }};
-        }
-
-        HashMap<Integer, Widget> widgetsMap = widgets.stream()
-                .collect(toMap(Widget::getIndexZ, widget -> widget, (prev, next) -> next, HashMap::new));
-
-        Set<UUID> updatedWidgets = new HashSet<>();
-
-        return insertWidgetWithShift(widgetsMap, updatedWidgets, newWidget).values().stream()
-                .filter(widget -> isNull(widget.getId()) || updatedWidgets.contains(widget.getId()))
-                .collect(toList());
-    }
-
-    /*
-     * Also can be done via iterator, I decided to try this approach
-     */
-    private static HashMap<Integer, Widget> insertWidgetWithShift(HashMap<Integer, Widget> widgetsMap, Set<UUID> updatedWidgets, Widget newWidget) {
-
-        Optional.ofNullable(widgetsMap.get(newWidget.getIndexZ()))
-                .ifPresentOrElse(widget -> {
-                            widgetsMap.remove(widget.getIndexZ());
-                            widgetsMap.put(newWidget.getIndexZ(), newWidget);
-                            updatedWidgets.add(newWidget.getId());
-
-                            if (isNull(widget.getId())) {
-                                throw new IllegalStateException("Can't merge widgets with null id");
-                            } else if (!widget.getId().equals(newWidget.getId())) {
-                                widget.setIndexZ(widget.getIndexZ() + 1);
-                                updatedWidgets.add(widget.getId());
-                                insertWidgetWithShift(widgetsMap, updatedWidgets, widget);
-                            }
-                        },
-                        () -> {
-                            updatedWidgets.add(newWidget.getId());
-                            widgetsMap.put(newWidget.getIndexZ(), newWidget);
-                        });
-
-        return widgetsMap;
-    }
-
 }

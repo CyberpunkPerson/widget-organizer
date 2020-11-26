@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.annotation.DirtiesContext.MethodMode.BEFORE_METHOD;
@@ -41,6 +40,7 @@ class WidgetControllerTests {
 
 
     @Test
+    @DirtiesContext(methodMode = BEFORE_METHOD)
     public void createWidgetWithValidDataIsOkReturned() throws Exception {
 
         MvcResult result = mvc.perform(post("/widgets")
@@ -77,6 +77,15 @@ class WidgetControllerTests {
     }
 
     @Test
+    public void createWidgetWithNullBodyBadRequestReturned() throws Exception {
+
+        mvc.perform(post("/widgets")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = BEFORE_METHOD)
     public void updateWidgetWithValidDataIsOkReturned() throws Exception {
 
         MvcResult createResult = mvc.perform(post("/widgets")
@@ -141,6 +150,15 @@ class WidgetControllerTests {
     }
 
     @Test
+    public void updateWidgetWithNullBodyBadRequestReturned() throws Exception {
+
+        mvc.perform(put("/widgets")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = BEFORE_METHOD)
     public void getWidgetByIdIsOkReturned() throws Exception {
 
         MvcResult createResult = mvc.perform(post("/widgets")
@@ -165,7 +183,13 @@ class WidgetControllerTests {
 
         WidgetProjection foundWidget = readJsonAsWidget(searchResult);
 
-        assertEquals(createdWidget, foundWidget);
+        assertThat(foundWidget)
+                .returns(createdWidget.getId(), from(WidgetProjection::getId))
+                .returns(createdWidget.getCoordinateX(), from(WidgetProjection::getCoordinateX))
+                .returns(createdWidget.getCoordinateY(), from(WidgetProjection::getCoordinateY))
+                .returns(createdWidget.getWidth(), from(WidgetProjection::getWidth))
+                .returns(createdWidget.getHeight(), from(WidgetProjection::getHeight))
+                .returns(createdWidget.getIndexZ(), from(WidgetProjection::getIndexZ));
     }
 
     @Test
@@ -177,6 +201,7 @@ class WidgetControllerTests {
     }
 
     @Test
+    @DirtiesContext(methodMode = BEFORE_METHOD)
     public void deleteWidgetByIdIsOkReturned() throws Exception {
 
         MvcResult createResult = mvc.perform(post("/widgets")
@@ -262,7 +287,9 @@ class WidgetControllerTests {
 
         List<WidgetProjection> foundWidgets = readJsonAsWidgetsList(searchResult);
 
-        assertEquals(sortedWidgets, foundWidgets);
+        assertThat(foundWidgets)
+                .usingElementComparatorIgnoringFields("lastModifiedDate")
+                .isEqualTo(sortedWidgets);
     }
 
 
@@ -327,7 +354,9 @@ class WidgetControllerTests {
 
         List<WidgetProjection> foundWidgets = readJsonAsWidgetsList(searchResult);
 
-        assertEquals(sortedWidgets, foundWidgets);
+        assertThat(foundWidgets)
+                .usingElementComparatorIgnoringFields("lastModifiedDate")
+                .isEqualTo(sortedWidgets);
     }
 
     @Test

@@ -43,5 +43,9 @@ public class Widget extends Auditor {
 
     private Float maxCoordinateX;
 
+    private Float minCoordinateX;
+
     private Float maxCoordinateY;
+
+    private Float minCoordinateY;
 }

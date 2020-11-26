@@ -8,9 +8,9 @@ import java.util.UUID;
 
 public interface WidgetService {
 
-    Widget create(Widget newWidget);
+    Widget create(Widget widget);
 
-    Widget update(Widget newWidget);
+    Widget update(Widget widget);
 
     void deleteById(UUID widgetId);
 
