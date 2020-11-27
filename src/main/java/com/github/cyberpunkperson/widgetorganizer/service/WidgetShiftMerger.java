@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-import static java.util.Collections.emptySet;
 import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -26,23 +25,7 @@ public class WidgetShiftMerger implements WidgetMerger {
 
     @Override
     public List<Widget> mergeAll(List<Widget> widgets, Widget newWidget) {
-        return new ArrayList<>(mergeWidgets(widgets, newWidget));
-    }
-
-    private Collection<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget) {
-
-        if (isEmpty(widgets)) {
-            return mergeWithEmptyWidgets(widgets, newWidget);
-        }
-
-        if (isNull(newWidget.getIndexZ())) {
-            return mergeWithNullIndexZ(widgets, newWidget);
-        }
-
-        HashMap<Integer, Widget> widgetsMap = widgets.stream()
-                .collect(toMap(Widget::getIndexZ, widget -> widget, (prev, next) -> next, HashMap::new));
-
-        return insertWidgetWithShift(widgetsMap, newWidget, emptySet()).values();
+        return new ArrayList<>(mergeWidgets(widgets, newWidget, new HashSet<>()));
     }
 
     private Collection<Widget> mergeWidgets(List<Widget> widgets, Widget newWidget, Set<UUID> engagedWidgets) {
